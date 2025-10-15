@@ -1,0 +1,50 @@
+version: "3.9"
+
+networks:
+  webnet:
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - webnet
+
+  frontend:
+    image: ghcr.io/ThienDuong2909/TTTN_3TShop_FE:latest
+    container_name: frontend
+    restart: unless-stopped
+    networks:
+      - webnet
+
+  backend:
+    image: ghcr.io/ThienDuong2909/TTTN_3TShop_BE_CL:latest
+    container_name: backend
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+    networks:
+      - webnet
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
